@@ -119,6 +119,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:9px 4px;b
 #wiz{position:fixed;inset:0;background:var(--bg);z-index:40;overflow:auto;display:none;padding:20px}
 #wiz .card{max-width:480px;margin:24px auto}
 #wiz .logo{width:64px;height:64px;border-radius:22px;background:var(--hero);display:grid;place-items:center;color:#fff;margin:6px 0 14px}
+#w-conf{margin-top:16px}#w-conf .wc-box{border:1px solid var(--line,rgba(127,127,127,.25));border-radius:18px;padding:16px;background:var(--card2,rgba(127,127,127,.06))}#w-conf .btn{margin-top:10px}
 #wiz h2{font-size:24px;letter-spacing:-.03em}
 .opt{display:flex;gap:10px}.opt button{flex:1;padding:18px 8px;border:2px solid var(--bd);border-radius:18px;background:var(--card2);font-size:15px;font-weight:620;color:var(--tx);font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}.opt button svg{width:26px;height:26px}.opt button.on{border-color:var(--ac);background:var(--ac2);color:var(--ac)}
 /* importar extracto */
@@ -188,7 +189,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:9px 4px;b
  <div class="card"><h2>Importar extracto del banco</h2><p class="mu" style="margin-top:-4px">CSV o Excel de BBVA, Santander, CaixaBank, ING, Sabadell y otros. Se lee en este dispositivo: no se envía nada.</p><button class="btn w" id="ext-aj"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>Importar extracto</button>
   <h2 style="margin-top:18px">Reglas aprendidas</h2><div id="reglas"></div></div>
  <div class="card"><h2>Datos de ejemplo</h2><p class="mu" style="margin-top:-4px">Carga datos inventados para probar la app. Sustituyen a los actuales.</p><div class="row"><button class="btn sec" id="demo">Ejemplo en pareja</button><button class="btn sec" id="demo1">Ejemplo individual</button><button class="btn del" id="borrar">Borrar todo</button></div></div>
- <p class="mu" style="text-align:center">Cuentas Claras v0.2.0 · Funciona sin conexión · Sin servidores</p>
+ <p class="mu" style="text-align:center">Cuentas Claras v0.2.1 · Funciona sin conexión · Sin servidores</p>
 </section>
 </main>
 <button id="fab" aria-label="Añadir movimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -243,7 +244,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:9px 4px;b
  <div id="w-par" style="display:none"><div class="row"><div><label>Nombre 1</label><input id="w-a"></div><div><label>Nombre 2</label><input id="w-b"></div></div>
   <label>Reparto de los gastos comunes</label><select id="w-sp"><option value="50">50/50</option><option value="c">Personalizado</option></select>
   <div id="w-cus" style="display:none"><label>Porcentaje de la persona 1</label><input id="w-pct" type="number" min="0" max="100" value="60"></div></div>
- <button class="btn w" id="w-ok">Empezar</button><div class="row" style="gap:10px;margin-top:10px"><button class="btn sec" id="w-demo" style="margin:0">Probar ejemplo en pareja</button><button class="btn sec" id="w-demo1" style="margin:0">Probar ejemplo individual</button></div></div></div>
+ <div id="w-conf" style="display:none"><div class="wc-box"><b>Tienes datos propios en este móvil</b><p class="mu" id="w-conf-t"></p><button class="btn w" id="w-keep">Mantener mis datos y cambiar solo la configuración</button><button class="btn del w" id="w-wipe">Borrar todo y empezar de cero</button><button class="btn sec w" id="w-back">Volver</button></div></div>
+ <button class="btn w" id="w-ok">Empezar</button><div class="row" style="gap:10px;margin-top:10px"><button class="btn sec" id="w-demo" style="margin:0">Probar ejemplo en pareja</button><button class="btn sec" id="w-demo1" style="margin:0">Probar ejemplo individual</button></div><button class="btn sec w" id="w-x" style="display:none;margin-top:10px">Cancelar</button></div></div>
 <script>
 (function(){
 var KEY='cuentasclaras.v1',memo={},persist=true;
@@ -287,13 +289,28 @@ function quienOpts(sel){var v=sel.value;var o=par()?[['comun','Común (reparto)'
 function quienTxt(q){return !par()?'':q==='comun'?'Común':esc(nm(+q));}
 // Asistente
 var wm='solo';
-function wiz(show){$('wiz').style.display=show?'block':'none';}
+function esDemo(){return !!D.demo||D.mov.some(function(m){return m.nota==='Nómina de ejemplo';});}
+function hayDatos(){return D.mov.length+D.rec.length+D.act.length+D.fotos.length+(D.reglas||[]).length>0||D.meta>0;}
+function propios(){return hayDatos()&&!esDemo();}
+function wiz(show){$('wiz').style.display=show?'block':'none';$('w-conf').style.display='none';$('w-ok').style.display='';
+ if(!show)return;$('w-x').style.display=D.setup?'block':'none';
+ var st=propios()&&D.setup;['w-n0','w-a','w-b'].forEach(function(i){$(i).value='';});$('w-sp').value='50';$('w-cus').style.display='none';
+ if(st){var b=document.querySelector('#wiz .opt button[data-m="'+st.mode+'"]');if(b)b.click();if(st.mode==='pareja'){$('w-a').value=st.names[0];$('w-b').value=st.names[1];if(st.split[0]!==50){$('w-sp').value='c';$('w-pct').value=st.split[0];$('w-cus').style.display='block';}}else $('w-n0').value=st.names[0]==='Yo'?'':st.names[0];}
+ else document.querySelector('#wiz .opt button').click();}
+function nuevo(s){D=blank();D.setup=s;fin();}
+function fin(){save();wiz(false);$('mes').value='';$('mes2').value='';goTab('res');}
 document.querySelectorAll('#wiz .opt button').forEach(function(b){b.onclick=function(){wm=b.dataset.m;document.querySelectorAll('#wiz .opt button').forEach(function(x){x.classList.toggle('on',x===b);});$('w-par').style.display=wm==='pareja'?'block':'none';$('w-solo').style.display=wm==='solo'?'block':'none';};});
 document.querySelector('#wiz .opt button').click();
 $('w-sp').onchange=function(){$('w-cus').style.display=this.value==='c'?'block':'none';};
-$('w-ok').onclick=function(){var s={mode:wm};if(wm==='pareja'){var p=$('w-sp').value==='c'?Math.max(0,Math.min(100,+$('w-pct').value||50)):50;s.names=[$('w-a').value.trim()||'Persona 1',$('w-b').value.trim()||'Persona 2'];s.split=[p,100-p];}else{s.names=[$('w-n0').value.trim()||'Yo'];s.split=[100];}D.setup=s;save();wiz(false);render();};
-$('w-demo').onclick=function(){demo();wiz(false);};
-$('w-demo1').onclick=function(){demoSolo();wiz(false);};
+$('w-ok').onclick=function(){var s={mode:wm};if(wm==='pareja'){var p=$('w-sp').value==='c'?Math.max(0,Math.min(100,+$('w-pct').value||50)):50;s.names=[$('w-a').value.trim()||'Persona 1',$('w-b').value.trim()||'Persona 2'];s.split=[p,100-p];}else{s.names=[$('w-n0').value.trim()||'Yo'];s.split=[100];}if(propios()){wsel=s;$('w-conf-t').textContent=D.mov.length+' movimientos, '+D.rec.length+' recibos y '+D.act.length+' bienes/deudas. ¿Qué quieres hacer con ellos?';$('w-conf').style.display='block';$('w-ok').style.display='none';return;}
+ nuevo(s);};
+var wsel=null;
+$('w-keep').onclick=function(){var s=wsel;if(s.mode==='solo')D.mov.concat(D.act).forEach(function(x){x.q='0';});D.setup=s;fin();};
+$('w-wipe').onclick=function(){if(confirm('Se borrarán todos tus datos de este dispositivo. ¿Seguro?'))nuevo(wsel);};
+$('w-back').onclick=function(){$('w-conf').style.display='none';$('w-ok').style.display='';};
+$('w-x').onclick=function(){wiz(false);};
+$('w-demo').onclick=function(){if(propios()&&!confirm('Se sustituirán tus datos por un ejemplo ficticio en pareja.'))return;demo();wiz(false);};
+$('w-demo1').onclick=function(){if(propios()&&!confirm('Se sustituirán tus datos por un ejemplo ficticio individual.'))return;demoSolo();wiz(false);};
 // Pestañas
 var cur='res';
 function goTab(t){cur=t;document.querySelectorAll('#nav button').forEach(function(x){x.classList.toggle('on',x.dataset.t===t);});document.querySelectorAll('.tab').forEach(function(s){s.classList.toggle('on',s.id==='t-'+t);});$('fab').classList.toggle('hid',t==='aj');render();window.scrollTo(0,0);}
@@ -381,7 +398,7 @@ function demo(){var m0=hoy().slice(0,7);D=blank();D.setup={mode:'pareja',names:[
  function df(n){var d=new Date();d.setDate(d.getDate()+n);return ymd(d);}
  D.rec=[{id:uid(),n:'Alquiler',cat:'Vivienda',imp:750,fr:1,f:df(6),av:5},{id:uid(),n:'Luz',cat:'Suministros',imp:70,fr:1,f:df(12),av:5},{id:uid(),n:'Seguro de hogar',cat:'Seguros',imp:180,fr:12,f:df(20),av:30},{id:uid(),n:'IBI (ejemplo)',cat:'Impuestos',imp:320,fr:12,f:df(75),av:30},{id:uid(),n:'Seguro del coche',cat:'Seguros',imp:410,fr:12,f:df(140),av:30}];
  D.act=[{id:uid(),n:'Cuenta común',t:'Cuenta',v:2400,q:'comun'},{id:uid(),n:'Ahorro Ana',t:'Ahorro',v:9500,q:'0'},{id:uid(),n:'Fondo indexado Leo',t:'Inversión',v:6100,q:'1'},{id:uid(),n:'Coche',t:'Vehículo',v:7000,q:'comun'},{id:uid(),n:'Préstamo coche',t:'Deuda',v:-3700,q:'comun'}];
- D.meta=30000;save();render();}
+ D.meta=30000;D.demo=true;save();render();}
 function demoSolo(){var m0=hoy().slice(0,7);D=blank();D.setup={mode:'solo',names:['Pecas'],split:[100]};
  for(var k=-5;k<=0;k++){var m=addM(m0,k),r=Math.abs(k*29%60);
   D.mov.push({id:uid(),f:m+'-01',imp:2100,cat:'Nómina',fx:'fijo',q:'0',nota:'Nómina de ejemplo'});
@@ -399,7 +416,7 @@ function demoSolo(){var m0=hoy().slice(0,7);D=blank();D.setup={mode:'solo',names
  function df(n){var d=new Date();d.setDate(d.getDate()+n);return ymd(d);}
  D.rec=[{id:uid(),n:'Alquiler',cat:'Vivienda',imp:620,fr:1,f:df(9),av:5},{id:uid(),n:'Seguro de salud',cat:'Seguros',imp:55,fr:1,f:df(4),av:5},{id:uid(),n:'Seguro de inquilino',cat:'Seguros',imp:95,fr:12,f:df(48),av:30},{id:uid(),n:'Dominio web (ejemplo)',cat:'Suscripciones',imp:15,fr:12,f:df(110),av:15}];
  D.act=[{id:uid(),n:'Cuenta nómina',t:'Cuenta',v:1900,q:'0'},{id:uid(),n:'Colchón de emergencia',t:'Ahorro',v:6000,q:'0'},{id:uid(),n:'Fondo indexado',t:'Inversión',v:4000,q:'0'},{id:uid(),n:'Bici eléctrica',t:'Vehículo',v:900,q:'0'},{id:uid(),n:'Préstamo estudios',t:'Deuda',v:-2200,q:'0'}];
- D.meta=20000;save();render();}
+ D.meta=20000;D.demo=true;save();render();}
 // ===== Importar extracto (todo se procesa en el dispositivo; nada sale fuera) =====
 function nz(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove('on');},3200);}

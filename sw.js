@@ -1,5 +1,5 @@
 // Service worker de Cuentas Claras. Solo cachea los archivos de la app: tus datos están en localStorage y no se tocan.
-const VERSION='0.2.0';
+const VERSION='0.2.1';
 const CACHE='cuentas-claras-'+VERSION;
 const ARCHIVOS=['./','./index.html','./manifest.webmanifest','./inter.woff','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/apple-touch-icon.png','./icons/favicon-32.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ARCHIVOS.map(u=>new Request(u,{cache:'reload'})))));});
